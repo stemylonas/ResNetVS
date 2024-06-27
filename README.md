@@ -25,9 +25,9 @@ pip install -r requirements.txt
 ```
 # tested with g++ 7.5.0
 mkdir gninatyper/build
-g++ -std=c++11 gninatyper/gninatyper.cpp gninatyper/obmolopener.cpp gninatyper/atom_constants.cpp -o gninatyper/build/gninatyper.out \
--I /usr/include/openbabel-2.0 -I gninatyper -I/usr/local/cuda/include -L /usr/lib/openbabel/2.3.2 \
--lopenbabel -lboost_filesystem -lboost_system -lboost_iostreams
+g++ -std=c++11 gninatyper/gninatyper.cpp gninatyper/obmolopener.cpp gninatyper/atom_constants.cpp 
+-o gninatyper/build/gninatyper.out -I /usr/include/openbabel-2.0 -I gninatyper -I/usr/local/cuda/include \
+-L /usr/lib/openbabel/2.3.2 -lopenbabel -lboost_filesystem -lboost_system -lboost_iostreams
 ```
 5) Download pretrained model
 ```
@@ -46,7 +46,8 @@ Usage example
 ---------------
 
 ```
-python run.py -r test_data/spike_mutation_aligned.pdbqt -rH test_data/spike_mutation_aligned_H.pdbqt -l test_data/test.sdf -k test_data/ace2.pdb -o results
+python run.py -r test_data/spike_mutation_aligned.pdbqt -rH test_data/spike_mutation_aligned_H.pdbqt \
+-l test_data/test.sdf -kb test_data/ace2.pdb -o results
 ```
 
 The method requires an input receptor in two files of .pdbqt format (with and without hydrogens respectively) and an .sdf file of small molecules.
