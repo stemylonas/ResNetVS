@@ -1,0 +1,5 @@
+numpy==1.13.3
+tensorflow-gpu==1.13.1
+openbabel==2.4.1
+protobuf==3.6.1
+biopython==1.72
