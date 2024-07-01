@@ -5,6 +5,7 @@ __pycache__/
 *models/
 *smina/
 *gninatyper/build/
+*test_data/*npy
 *.so
 *.o
 *.7z

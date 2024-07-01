@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ```
 # tested with g++ 7.5.0
 mkdir gninatyper/build
-g++ -std=c++11 gninatyper/gninatyper.cpp gninatyper/obmolopener.cpp gninatyper/atom_constants.cpp 
+g++ -std=c++11 gninatyper/gninatyper.cpp gninatyper/obmolopener.cpp gninatyper/atom_constants.cpp \
 -o gninatyper/build/gninatyper.out -I /usr/include/openbabel-2.0 -I gninatyper -I/usr/local/cuda/include \
 -L /usr/lib/openbabel/2.3.2 -lopenbabel -lboost_filesystem -lboost_system -lboost_iostreams
 ```

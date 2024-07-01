@@ -44,10 +44,10 @@ def joined_score(smina_output, cnn_output, t_norm='prod',s_norm='max'):
     
     sorted_scores = sorted(ligand_scores.items(), key=operator.itemgetter(1), reverse=True)
     
-    with open(smina_output.rsplit('/',1)[0]+'/final_score.csv', 'w') as f:
-        f.write("ligand,pose_id,score\n")
+    with open(smina_output.rsplit('/',1)[0]+'/final_score.tsv', 'w') as f:
+        f.write("ligand\tpose_id\tscore\n")
         for lig_val in sorted_scores:
-            f.write(lig_val[0]+','+str(lig_val[1][1])+','+'{0:.3f}'.format(lig_val[1][0])+'\n')
+            f.write(lig_val[0]+'\t'+str(lig_val[1][1])+'\t'+'{0:.3f}'.format(lig_val[1][0])+'\n')
         
     return sorted_scores
    

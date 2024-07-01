@@ -36,7 +36,7 @@ def close_prot_to_lig(prot_coords,lig_coords,thres):
     return False
 
 
-def remove_from_sdf(prot_coords,sdf_file,thres=2.0):
+def remove_from_sdf(prot_coords, sdf_file, thres=2.0):
     ligands = readfile('sdf',sdf_file)
     
     close = []
@@ -46,13 +46,10 @@ def remove_from_sdf(prot_coords,sdf_file,thres=2.0):
     
     lig_to_keep = np.where(close)[0]
 
-    out_file = sdf_file[:-4]+'_filtered.sdf'
-    filter_sdf(sdf_file,lig_to_keep,out_file)
-    
-    return out_file
+    filter_sdf(sdf_file,lig_to_keep,sdf_file)
 
 
-def filter_sdf(input_sdf,desired_idxs,output_sdf):
+def filter_sdf(input_sdf, desired_idxs, output_sdf):
     with open(input_sdf,'r') as f:
         lines = f.readlines()
     outlines = []

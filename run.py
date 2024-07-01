@@ -1,8 +1,7 @@
+import os, argparse, time, shutil, gzip
+from docking import SminaDocking
 from scoring import cnn_rescoring, joined_score
-import os, argparse, time, shutil, gzip, numpy as np
-from Bio.PDB.PDBParser import PDBParser
-from utils import remove_from_sdf, txt_to_npy
-from pybel import readfile
+from utils import txt_to_npy
 
 
 def parse_args():
@@ -29,49 +28,15 @@ if not args.ligand.endswith('sdf'):
 if args.known_binder and args.residues:
     raise Exception('Either known binder or binding residues should be given (NOT both of them).')
 
-mol_parser = PDBParser(PERMISSIVE=1)
 
 if not os.path.exists(args.output):
     os.makedirs(args.output)
 t1 = time.time()
 
-# Docking (smina)
+# Docking
 
-docking_file = os.path.join(args.output,'smina_results.sdf')
-
-if args.known_binder is not None:
-    os.system('smina/smina.static -r '+args.receptor_H+' -l '+args.ligand+' --autobox_ligand '+args.known_binder+' -o '+docking_file+ 
-          ' --log '+os.path.join(args.output,'smina.log')+ ' --seed 0 --num_modes 50 -q')
-    t2 = time.time()
-    mol = next(readfile(args.known_binder.split('.')[-1],args.known_binder))
-    mol_coords = np.array([atom.coords for atom in mol.atoms])
-    docking_file = remove_from_sdf(mol_coords,docking_file,3)
-    t3 = time.time()
-elif args.residues is not None:
-    res1,res2 = args.residues.split('-')
-    mol = mol_parser.get_structure('mol',args.receptor)
-    mol_coords = []
-    for res in mol.get_residues():
-        if int(res1) <= res.get_id()[1] <= int(res2):
-            mol_coords += [atom.get_coord() for atom in res]
-    mol_center = np.average(mol_coords,axis=0)
-    mol_coords = np.array(mol_coords)
-    mol_size = np.max(mol_coords,axis=0) - np.min(mol_coords,axis=0)
-    os.system('smina/smina.static -r '+args.receptor_H+' -l '+args.ligand+' --center_x '+str(mol_center[0])+' --center_y '+str(mol_center[1])+' --center_z '+str(mol_center[2])+
-              ' --size_x '+str(mol_size[0])+' --size_y '+str(mol_size[1])+' --size_z '+str(mol_size[2])+' -o '+docking_file+
-              ' --log '+os.path.join(args.output,'smina.log')+ ' --seed 0 --num_modes 50 -q')  
-    t2 = time.time()
-    docking_file = remove_from_sdf(mol_coords,docking_file,3)
-    t3 = time.time()
-else:
-    mol = readfile(args.receptor.split('.')[-1],args.receptor).next()
-    mol_coords = np.array([atom.coords for atom in mol.atoms])
-    mol_center = np.average(mol_coords,axis=0)
-    mol_size = np.max(mol_coords,axis=0) - np.min(mol_coords,axis=0)
-    os.system('smina/smina.static -r '+args.receptor_H+' -l '+args.ligand+' --center_x '+str(mol_center[0])+' --center_y '+str(mol_center[1])+' --center_z '+str(mol_center[2])+
-              ' --size_x '+str(mol_size[0])+' --size_y '+str(mol_size[1])+' --size_z '+str(mol_size[2])+' -o '+docking_file+
-              ' --log '+os.path.join(args.output,'smina.log')+ ' --seed 0 --num_modes 50 -q')
-    t2 = time.time()
+docking = SminaDocking(args.receptor, args.ligand, args.output, args.known_binder, args.residues)
+docking.run()
 
 # Get gnina features
     
@@ -86,7 +51,7 @@ if not os.path.exists(receptor_gnina):
 if not os.path.exists(os.path.join(args.output,'gninatypes')):
     os.makedirs(os.path.join(args.output,'gninatypes'))
     
-os.system('gninatyper/build/gninatyper.out '+docking_file+' '+os.path.join(args.output,'gninatypes')+' mol 1')
+os.system('gninatyper/build/gninatyper.out '+docking.docking_file+' '+os.path.join(args.output,'gninatypes')+' mol 1')
 t4 = time.time()
 txt_to_npy(os.path.join(args.output,'gninatypes'))
 t5 = time.time()
@@ -96,7 +61,7 @@ cnn_rescoring(receptor_gnina, args.output)
 t6 = time.time()
 
 # Calc joined score (CNN + smina)
-final_score = joined_score(docking_file,os.path.join(args.output,'cnn_scores.npy'))
+final_score = joined_score(docking.docking_file,os.path.join(args.output,'cnn_scores.npy'))
 
 # Remove gninatypes and compress docking output
 shutil.rmtree(os.path.join(args.output,'gninatypes'))
