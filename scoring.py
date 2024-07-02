@@ -49,16 +49,15 @@ class Rescoring:
     def __init__(self, atom_typing='boolean', cube_size=24, cell_dim=1, nAtomTypes=28):
 
         self.model = 'models/DUDE_3x3_olds_set_oldfold0_49'
-        
         self.grid = Grid(atom_typing, cube_size, cell_dim, nAtomTypes)
     
-    def predict(self, receptor, docking_result, out_dir):
+    def predict(self, receptor, docking_result, out_dir, batch_size=16):
         receptor_gnina, ligand_gnina_path = self._calc_gninatypes(receptor, docking_result, out_dir)
         
         tf.reset_default_graph()
         grid_size = self.grid.grid_size
         nAtomTypes = self.grid.nAtomTypes
-        inputs = tf.placeholder(tf.float32,shape=(1,grid_size,grid_size,grid_size,nAtomTypes))
+        inputs = tf.placeholder(tf.float32,shape=(None,grid_size,grid_size,grid_size,nAtomTypes))
         
         with slim.arg_scope(resnet_arg_scope()):
             net, end_points = resnet_v1_18(inputs, 2, is_training=False)
@@ -72,13 +71,21 @@ class Rescoring:
         saver.restore(sess, self.model)
         
         n_poses = len(os.listdir(ligand_gnina_path))
+        n_batches = (n_poses + batch_size - 1) // batch_size
         out_prob = np.zeros(n_poses)
         
-        for i in range(n_poses):
-            mol = MoleculeComplex(receptor_gnina, os.path.join(ligand_gnina_path,'mol_'+str(i+1)+'.npy'))
-            feats = self.grid.create_grid(mol)
-            output = sess.run(end_points,feed_dict={inputs:np.expand_dims(feats,axis=0)})
-            out_prob[i] = np.squeeze(output['predictions'])[1]
+        for i in range(n_batches):
+            start_idx = i * batch_size
+            end_idx = min((i + 1) * batch_size, n_poses)
+            
+            feats = np.zeros((end_idx-start_idx,grid_size,grid_size,grid_size,nAtomTypes))
+            for j in range(end_idx-start_idx):
+                mol = MoleculeComplex(receptor_gnina, os.path.join(ligand_gnina_path,'mol_'+str(start_idx+j+1)+'.npy'))
+                feats[j,:,:,:,:] = self.grid.create_grid(mol)
+            
+            output = sess.run(end_points,feed_dict={inputs:feats})
+
+            out_prob[start_idx:end_idx] = np.squeeze(output['predictions'], axis=(1,2,3))[:,1]
         
         sess.close()
         
