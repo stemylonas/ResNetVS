@@ -46,9 +46,9 @@ Usage example
 ---------------
 
 ```
-python run.py -r test_data/spike_mutation_aligned.pdbqt -rH test_data/spike_mutation_aligned_H.pdbqt \
+python screening.py -r test_data/spike_mutation_aligned.pdbqt -rH test_data/spike_mutation_aligned_H.pdbqt \
 -l test_data/test.sdf -kb test_data/ace2.pdb -o results
 ```
 
 The method requires an input receptor in two files of .pdbqt format (with and without hydrogens respectively) and an .sdf file of small molecules.
-For more input options, check the arguments of 'run.py'.
+For more input options, check the arguments of 'screening.py'.
