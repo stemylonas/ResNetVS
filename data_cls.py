@@ -1,6 +1,4 @@
-import os, threading, time
 import numpy as np
-import random         
 
         
 class MoleculeComplex:
@@ -47,12 +45,12 @@ class Grid:
         self.cell_dim = cell_dim
         self.cube_size = cube_size
         self.grid_size = int(cube_size/cell_dim)
-        self.nAtomtypes = nAtomTypes
+        self.nAtomTypes = nAtomTypes
     
     def create_grid(self,mol):
         grid_limits_low = mol.center - float(self.cube_size)/2
         grid_limits_up = mol.center + float(self.cube_size)/2
-        feats = np.zeros((self.grid_size,self.grid_size,self.grid_size,self.nAtomtypes),dtype=np.float32)
+        feats = np.zeros((self.grid_size,self.grid_size,self.grid_size,self.nAtomTypes),dtype=np.float32)
         for i,p in enumerate(mol.coords):
             radius = ATOM_TYPES[mol.types[i]][1]
             if np.any(p+radius<grid_limits_low) or np.any(p-radius>grid_limits_up):   #  discard atoms out of the grid
@@ -100,84 +98,7 @@ class Grid:
     
     # def density_v2(self,d,r):
     #    return 1-np.exp(-(r/d)**12)
-
-
-class Dataset:
-    def __init__(self,train_types,valid_types,batch_size,data_path,atom_typing,cube_size,cell_dim,nAtomTypes,max_offset,training,decoys_ratio,augment_active=1):
-        #  in testing mode training file is not read
-        if training:
-            with open(train_types) as f:
-                train_lines = f.readlines()
-            
-            self.train_active_lines = [l for l in train_lines if l[0]=='1']
-            self.train_decoy_lines = [l for l in train_lines if l[0]=='0']
-            
-            if decoys_ratio == float('inf'):
-                self.nDecoysTrain = len(self.train_decoy_lines)
-            else:
-                self.nDecoysTrain = len(self.train_active_lines)*decoys_ratio
-            
-            if augment_active > 1:
-                self.train_active_lines *= augment_active
-
-            self.create_epoch_dataset()
-        
-        with open(valid_types) as f:
-            self.valid_lines = f.readlines()
-        #valid_active_lines = [l for l in valid_lines if l[0]=='1']
-        #valid_decoy_lines = [l for l in valid_lines if l[0]=='0']
-        #if decoys_ratio == float('inf'):
-         #   self.valid_lines = valid_active_lines + valid_decoy_lines
-        #else:
-         #   self.valid_lines = valid_active_lines + random.sample(valid_decoy_lines,decoys_ratio*len(valid_active_lines))
-        random.shuffle(self.valid_lines)
-        self.pointer_val = 0
-        
-        self.batch_size = batch_size
-        self.data_path = data_path
-        self.decoys_ratio = decoys_ratio
-        self.max_translation = max_offset
-        
-        self.grid = Grid(atom_typing,cube_size,cell_dim,nAtomTypes)
-        
-        
-    def create_epoch_dataset(self): 
-        # random sampling without replacement
-        self.train_lines = self.train_active_lines + random.sample(self.train_decoy_lines,self.nDecoysTrain)  
-        random.shuffle(self.train_lines)
-        self.pointer_tr = 0
-        
-    def fetch_data(self,mode):
-        if mode == 'train':
-            samples = self.train_lines[self.pointer_tr:self.pointer_tr+self.batch_size]
-            self.pointer_tr += self.batch_size
-            if self.pointer_tr + self.batch_size > len(self.train_lines):
-                self.create_epoch_dataset()
-        else:
-            samples = self.valid_lines[self.pointer_val:self.pointer_val+self.batch_size]
-            self.pointer_val += self.batch_size
-            if self.pointer_val + self.batch_size > len(self.valid_lines):
-                self.pointer_val = 0
-        #random.shuffle(samples)
-        feats = np.zeros((self.batch_size,self.grid.grid_size,self.grid.grid_size,self.grid.grid_size,self.grid.nAtomtypes))
-        #labels = np.zeros((self.batch_size,2),dtype=int)
-        labels = np.zeros(self.batch_size,dtype=int)
-        for i,l in enumerate(samples):
-            label, rec_file, lig_file = l.split()
-            labels[i] = int(label)
-#            labels[i,int(label)] = 1
-            mol = MoleculeComplex(os.path.join(self.data_path,rec_file),os.path.join(self.data_path,lig_file))
-            if mode == 'train':
-                mol.rotate()
-                mol.translate(self.max_translation)
-            feats[i,:,:,:,:] = self.grid.create_grid(mol)
-        
-        if np.isnan(np.sum(feats)):
-            print('NaN in input')
-        return feats, labels
-    
-    
-
+ 
 
 
 ATOM_TYPES = [['Hydrogen',1.0,True,True,np.inf,np.inf],

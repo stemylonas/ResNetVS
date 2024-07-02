@@ -1,7 +1,7 @@
-import os
+import os, shutil, gzip
 import numpy as np
 from Bio.PDB.PDBParser import PDBParser
-from utils import remove_from_sdf
+from utils import remove_from_sdf, get_sdf_scores
 
 
 class SminaDocking:
@@ -54,8 +54,17 @@ class SminaDocking:
             mol_coords = np.array([atom.get_coord() for atom in receptor.get_atoms()])
             search_space = self._get_search_bbox(mol_coords)
             self._run_smina(search_space)
+            # no postprocess
     
-    def _get_search_bbox(self,coords):
+    def get_affinities(self):
+        return get_sdf_scores(self.docking_file)
+    
+    def compress_output(self):
+        with open(self.docking_file, 'rb') as f_in, gzip.open(self.docking_file+'.gz', 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        os.remove(self.docking_file)
+    
+    def _get_search_bbox(self, coords):
         center = np.average(coords,axis=0)
         size = np.max(coords,axis=0) - np.min(coords,axis=0)
         return '--center_x {} --center_y {} --center_z {} --size_x {} --size_y {} --size_z {}'.format(
